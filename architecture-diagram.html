@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Materials Knowledge Assistant — AWS Architecture v2</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #080c14;
+    --surface: #0f1623;
+    --surface2: #161f2e;
+    --surface3: #1c2840;
+    --border: #1e2d45;
+    --border-bright: #2a3f5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --accent4: #10b981;
+    --accent5: #f59e0b;
+    --accent6: #ec4899;
+    --text: #e2e8f0;
+    --text-muted: #4a6080;
+    --text-dim: #7a95b0;
+    --aws-orange: #ff9900;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 40px 36px 80px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 44px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left { border-left: 3px solid var(--accent); padding-left: 18px; }
+  .header-tag { font-size: 9px; font-weight: 700; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; }
+  .header h1 { font-family: 'Syne', sans-serif; font-size: clamp(20px, 2.5vw, 32px); font-weight: 800; color: #fff; line-height: 1.15; }
+  .header h1 span { color: var(--aws-orange); }
+  .header-sub { margin-top: 8px; font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+  .header-right { text-align: right; }
+  .version-badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 6px; padding: 6px 12px; font-size: 9px; color: var(--accent); letter-spacing: 2px; }
+  .exam-badge { display: block; margin-top: 8px; font-size: 9px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 36px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px;
+  }
+  .legend-title { font-size: 9px; color: var(--text-muted); letter-spacing: 3px; text-transform: uppercase; margin-right: 8px; align-self: center; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 9px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── Main flow overview ── */
+  .flow-overview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--aws-orange);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .section-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: var(--text-muted);
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .flow-steps {
+    display: flex; align-items: center; gap: 0; overflow-x: auto; padding-bottom: 4px;
+  }
+  .flow-step { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; }
+  .flow-step-box {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+    padding: 8px 14px; font-size: 10px; font-weight: 600; white-space: nowrap; text-align: center; line-height: 1.3;
+  }
+  .flow-step-sub { font-size: 8px; color: var(--text-muted); white-space: nowrap; text-align: center; }
+  .flow-conn { display: flex; flex-direction: column; align-items: center; padding: 0 4px; flex-shrink: 0; }
+  .flow-conn-line { width: 28px; height: 1px; background: var(--border-bright); position: relative; }
+  .flow-conn-line::after { content: '▶'; position: absolute; right: -5px; top: 50%; transform: translateY(-50%); font-size: 7px; color: var(--text-muted); }
+  .flow-conn-label { font-size: 7px; color: var(--text-muted); margin-top: 4px; letter-spacing: 1px; white-space: nowrap; }
+
+  /* ── Two-column main layout ── */
+  .main-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .main-layout-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .main-layout-full { margin-bottom: 16px; }
+
+  /* ── Phase card ── */
+  .phase {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; position: relative;
+    transition: border-color 0.25s;
+  }
+  .phase:hover { border-color: var(--border-bright); }
+
+  .phase-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .phase-num {
+    font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 8px; color: var(--text-muted); flex-shrink: 0;
+  }
+  .phase-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600; color: #fff; }
+  .phase-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* Phase color accents */
+  .p-ingest  { border-top: 2px solid #00d4ff; }
+  .p-vector  { border-top: 2px solid #7c3aed; }
+  .p-rag     { border-top: 2px solid #ff6b35; }
+  .p-api     { border-top: 2px solid #10b981; }
+  .p-auth    { border-top: 2px solid #f59e0b; }
+  .p-multimodal { border-top: 2px solid #ec4899; }
+  .p-security{ border-top: 2px solid #f59e0b; }
+  .p-obs     { border-top: 2px solid #ec4899; }
+  .p-eval    { border-top: 2px solid #10b981; }
+
+  /* ── Service card ── */
+  .services { display: flex; flex-direction: column; gap: 7px; }
+  .svc {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; display: grid; grid-template-columns: 30px 1fr; gap: 10px;
+    align-items: start; transition: all 0.2s; cursor: default;
+  }
+  .svc:hover { border-color: var(--border-bright); transform: translateX(2px); }
+  .svc-icon { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .svc-name { font-size: 11px; font-weight: 600; color: #fff; line-height: 1.2; }
+  .svc-role { font-size: 9px; color: var(--text-dim); margin-top: 3px; line-height: 1.5; }
+  .svc-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .svc-task { font-size: 8px; color: var(--accent); opacity: 0.7; letter-spacing: 0.5px; }
+  .svc-new { font-size: 8px; font-weight: 700; background: rgba(16,185,129,0.15); color: var(--accent4); border-radius: 3px; padding: 1px 5px; letter-spacing: 1px; }
+
+  /* Icon colors */
+  .ic-s3         { background: rgba(255,153,0,0.12);  color: var(--aws-orange); }
+  .ic-textract   { background: rgba(0,212,255,0.1);   color: var(--accent); }
+  .ic-lambda     { background: rgba(255,107,53,0.12); color: #ff6b35; }
+  .ic-bedrock    { background: rgba(124,58,237,0.12); color: #a78bfa; }
+  .ic-opensearch { background: rgba(0,212,255,0.1);   color: var(--accent); }
+  .ic-dynamo     { background: rgba(16,185,129,0.12); color: var(--accent4); }
+  .ic-apigw      { background: rgba(255,153,0,0.12);  color: var(--aws-orange); }
+  .ic-cognito    { background: rgba(245,158,11,0.12); color: var(--accent5); }
+  .ic-cloudfront { background: rgba(255,107,53,0.1);  color: #ff6b35; }
+  .ic-cloudwatch { background: rgba(236,72,153,0.12); color: #ec4899; }
+  .ic-xray       { background: rgba(236,72,153,0.1);  color: #f472b6; }
+  .ic-cloudtrail { background: rgba(245,158,11,0.1);  color: var(--accent5); }
+  .ic-macie      { background: rgba(245,158,11,0.12); color: var(--accent5); }
+  .ic-iam        { background: rgba(245,158,11,0.1);  color: var(--accent5); }
+  .ic-sagemaker  { background: rgba(124,58,237,0.12); color: #a78bfa; }
+  .ic-elasticache{ background: rgba(16,185,129,0.1);  color: var(--accent4); }
+  .ic-transcribe { background: rgba(236,72,153,0.12); color: #ec4899; }
+  .ic-rekognition{ background: rgba(236,72,153,0.1);  color: #f472b6; }
+  .ic-edge       { background: rgba(255,107,53,0.12); color: #ff6b35; }
+  .ic-kms        { background: rgba(245,158,11,0.1);  color: var(--accent5); }
+  .ic-waf        { background: rgba(245,158,11,0.12); color: var(--accent5); }
+
+  /* ── Auth flow diagram ── */
+  .auth-flow {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; margin-bottom: 10px;
+  }
+  .auth-flow-title { font-size: 8px; letter-spacing: 2px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; }
+  .auth-flow-steps { display: flex; align-items: center; gap: 0; flex-wrap: wrap; row-gap: 8px; }
+  .auth-step { font-size: 9px; background: var(--surface3); border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; white-space: nowrap; }
+  .auth-arrow { font-size: 8px; color: var(--text-muted); padding: 0 6px; }
+
+  /* ── Decision box ── */
+  .decision-box {
+    background: var(--surface2); border: 1px solid var(--border-bright); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 10px;
+  }
+  .decision-title { font-size: 8px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent5); margin-bottom: 8px; }
+  .decision-row { display: flex; gap: 8px; margin-bottom: 4px; align-items: flex-start; }
+  .decision-label { font-size: 9px; font-weight: 600; min-width: 90px; }
+  .decision-val { font-size: 9px; color: var(--text-dim); line-height: 1.5; }
+  .vs-sep { text-align: center; font-size: 9px; color: var(--text-muted); margin: 4px 0; letter-spacing: 2px; }
+
+  /* ── Full-width section ── */
+  .full-section { grid-column: 1 / -1; }
+
+  /* ── Notes grid ── */
+  .notes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 4px; }
+  .note-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .note-title { font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+  .note-card p { font-size: 10px; color: var(--text-dim); line-height: 1.7; }
+  .note-card strong { color: var(--accent); }
+  .note-card em { color: var(--accent4); font-style: normal; }
+
+  /* ── Services inline grid ── */
+  .services-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 7px; }
+
+  /* ── Separator ── */
+  .sep { height: 1px; background: var(--border); margin: 8px 0; }
+
+  @media (max-width: 1000px) {
+    .main-layout, .main-layout-3 { grid-template-columns: 1fr 1fr; }
+    .notes { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .main-layout, .main-layout-3, .notes { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-tag">AWS Architecture · AIP-C01 Study Project · v2.0</div>
+      <h1>Materials Knowledge Assistant<br><span>100% Serverless AWS Infrastructure</span></h1>
+      <div class="header-sub">RAG · Multimodal · Auth · History · Agents · Security · Observability · Model Evaluation</div>
+    </div>
+    <div class="header-right">
+      <div class="version-badge">AIP-C01 · 5 FASES</div>
+      <div class="exam-badge">Domínios 1–5 cobertos</div>
+    </div>
+  </div>
+
+  <!-- ── Legend ── -->
+  <div class="legend">
+    <span class="legend-title">Domínios</span>
+    <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div>D1 — FM Integration & Data</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div>D2 — Implementation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>D3 — Security & Governance</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>D4 — Efficiency & Optimization</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>D5 — Testing & Validation</div>
+    <div class="legend-item" style="margin-left:auto"><div class="legend-dot" style="background:#10b981;border-radius:50%"></div>NOVO nesta versão</div>
+  </div>
+
+  <!-- ── Top Flow Overview ── -->
+  <div class="flow-overview">
+    <div class="section-label" style="color:var(--aws-orange)">▸ Fluxo Completo — Visão Geral</div>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#f59e0b;color:#f59e0b">👤 Usuária</div>
+        <div class="flow-step-sub">autenticada</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">HTTPS</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#ff9900">CloudFront</div>
+        <div class="flow-step-sub">+ Lambda@Edge</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">JWT</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#ff9900">API Gateway</div>
+        <div class="flow-step-sub">Cognito Auth</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">invoke</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#ff6b35">Lambda</div>
+        <div class="flow-step-sub">Query Handler</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">history</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#10b981">DynamoDB</div>
+        <div class="flow-step-sub">Histórico chat</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">search</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#00d4ff">OpenSearch</div>
+        <div class="flow-step-sub">Vector kNN</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">prompt</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#a78bfa">Bedrock Claude</div>
+        <div class="flow-step-sub">Guardrails ON</div>
+      </div>
+      <div class="flow-conn"><div class="flow-conn-line"></div><div class="flow-conn-label">stream</div></div>
+      <div class="flow-step">
+        <div class="flow-step-box" style="border-color:#10b981">💬 Chat</div>
+        <div class="flow-step-sub">com citações</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FASE 1 + FASE 2 ── -->
+  <div class="main-layout">
+
+    <!-- Fase 1: Ingestão -->
+    <div class="phase p-ingest">
+      <div class="phase-header">
+        <div class="phase-num">Fase 1</div>
+        <div class="phase-title">Ingestão & Processamento de PDFs</div>
+      </div>
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-s3">🪣</div>
+          <div>
+            <div class="svc-name">Amazon S3</div>
+            <div class="svc-role">Repositório dos PDFs. Bucket separado por coleção. S3 Event Notification dispara Lambda on upload. Lifecycle policy para arquivamento.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.3 · 1.4</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-textract">🔍</div>
+          <div>
+            <div class="svc-name">Amazon Textract</div>
+            <div class="svc-role">Extrai texto estruturado de PDFs técnicos com tabelas, fórmulas e diagramas. Preserva layout hierárquico (título, seção, parágrafo).</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.3.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-lambda">λ</div>
+          <div>
+            <div class="svc-name">Lambda — Chunking Processor</div>
+            <div class="svc-role">Chunking fixo (512 tokens) + hierárquico (por seção). Extrai metadados: livro, capítulo, página, autor. Envia para embedding.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.3.1 · 1.5.1</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Amazon Titan Embeddings v2</div>
+            <div class="svc-role">Gera vetores 1536-dim via Bedrock API. Batch via Lambda. Escolha justificada por dimensionalidade e domínio técnico em PT-BR.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.5.2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fase 2: Vector Store -->
+    <div class="phase p-vector">
+      <div class="phase-header">
+        <div class="phase-num">Fase 2</div>
+        <div class="phase-title">Vector Store & Metadados</div>
+      </div>
+
+      <div class="decision-box">
+        <div class="decision-title">⚖ Trade-off cobrado no exame</div>
+        <div class="decision-row"><span class="decision-label" style="color:#a78bfa">Bedrock KB</span><span class="decision-val">Gerenciado, menos controle, ideal para MVP rápido</span></div>
+        <div class="vs-sep">— vs —</div>
+        <div class="decision-row"><span class="decision-label" style="color:#00d4ff">Manual Pipeline</span><span class="decision-val">Lambda + OpenSearch, controle total, hybrid search, reranking</span></div>
+      </div>
+
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-opensearch">⌖</div>
+          <div>
+            <div class="svc-name">OpenSearch Serverless</div>
+            <div class="svc-role">kNN com HNSW. Hybrid search: BM25 + semântico. Reranker nativo. Sharding por domínio técnico (corrosão, fadiga, fratura...).</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.4.1 · 1.5.3 · 1.5.4</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-dynamo">▤</div>
+          <div>
+            <div class="svc-name">Amazon DynamoDB</div>
+            <div class="svc-role">Metadados: livro, capítulo, página, autor, data. Lookup O(1) para montar citações. Também armazena histórico de conversas.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.4.2 · 1.6.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Bedrock Knowledge Bases</div>
+            <div class="svc-role">Pipeline RAG gerenciado. Conecta S3 → OpenSearch automaticamente. Estudado em paralelo para comparar com pipeline manual.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.4 · 1.5 completo</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-layout -->
+
+  <!-- ── FASE 3: RAG + Multimodal ── -->
+  <div class="main-layout">
+
+    <!-- RAG Pipeline -->
+    <div class="phase p-rag">
+      <div class="phase-header">
+        <div class="phase-num">Fase 3</div>
+        <div class="phase-title">RAG Pipeline & Geração</div>
+      </div>
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-lambda">λ</div>
+          <div>
+            <div class="svc-name">Lambda — Query Handler</div>
+            <div class="svc-role">Carrega histórico do DynamoDB → gera embedding → busca OpenSearch → rerank → monta prompt com contexto + histórico → invoca Claude com streaming.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.5.4 · 1.5.5 · 1.6.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Bedrock — Claude Sonnet</div>
+            <div class="svc-role">Geração com citações explícitas (livro + página). InvokeModelWithResponseStream para streaming de tokens em tempo real.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.2 · 2.4.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Bedrock Prompt Management</div>
+            <div class="svc-role">Versiona system prompt. Templates parametrizados por tipo de consulta. Approval workflow. Rastreado via CloudTrail.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.6.3</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Bedrock Guardrails</div>
+            <div class="svc-role">Bloqueia perguntas fora do domínio técnico. Filtra PII. Detecta prompt injection e jailbreak. Grounded responses com Knowledge Base.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.1.1 · 3.1.2 · 3.1.5</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multimodal: Áudio + Imagem -->
+    <div class="phase p-multimodal">
+      <div class="phase-header">
+        <div class="phase-num">Fase 3 — Multimodal</div>
+        <div class="phase-title">Áudio, Imagem & Histórico</div>
+      </div>
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-transcribe">🎙</div>
+          <div>
+            <div class="svc-name">Amazon Transcribe</div>
+            <div class="svc-role">Transcrição de áudio gravado no browser (.webm → texto). Suporte PT-BR. Áudio sobe ao S3 via Presigned URL, Transcribe lê e retorna texto ao pipeline.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.3.2</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-rekognition">🖼</div>
+          <div>
+            <div class="svc-name">Amazon Rekognition</div>
+            <div class="svc-role">Pré-classifica imagens (microestrutura, fratura, diagrama) antes do Bedrock. Labels enriquecem o contexto do prompt multimodal.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.3.2</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Bedrock Multimodal (Claude)</div>
+            <div class="svc-role">Recebe imagem como base64 + texto no mesmo payload. Analisa microestruturas, fractografias e diagramas de fase diretamente.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.2.1 · 1.3.2</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-dynamo">▤</div>
+          <div>
+            <div class="svc-name">DynamoDB — Histórico de Chat</div>
+            <div class="svc-role">Tabela conversations: PK=userId, SK=timestamp. Cada mensagem salva com role + content + tipo (text/audio/image). Carregado em cada query.</div>
+            <div class="svc-meta"><span class="svc-task">Task 1.6.2</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-layout -->
+
+  <!-- ── FASE 4: API + Auth + Frontend ── -->
+  <div class="main-layout-3">
+
+    <!-- API -->
+    <div class="phase p-api">
+      <div class="phase-header">
+        <div class="phase-num">Fase 4 — API</div>
+        <div class="phase-title">API & Integração</div>
+      </div>
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-apigw">⚡</div>
+          <div>
+            <div class="svc-name">Amazon API Gateway</div>
+            <div class="svc-role">Endpoints: /chat (stream), /upload-url (presigned), /history. Rate limiting. Cognito Authorizer valida JWT automaticamente.</div>
+            <div class="svc-meta"><span class="svc-task">Task 2.4.1 · 2.5.1</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-lambda">λ</div>
+          <div>
+            <div class="svc-name">Lambda — Presigned URL</div>
+            <div class="svc-role">Gera S3 Presigned URL para upload direto de áudio e imagem. Evita trafegar arquivo pelo API Gateway. Expira em 5 min.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.2.1</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-cloudfront">🌐</div>
+          <div>
+            <div class="svc-name">S3 + CloudFront</div>
+            <div class="svc-role">Bundle React estático. HTTPS obrigatório. Cache de assets. OAC (Origin Access Control) impede acesso direto ao S3.</div>
+            <div class="svc-meta"><span class="svc-task">Task 2.5.2</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Camada 1 -->
+    <div class="phase p-auth">
+      <div class="phase-header">
+        <div class="phase-num">Fase 4 — Auth Camada 1</div>
+        <div class="phase-title">Acesso à Aplicação</div>
+      </div>
+
+      <div class="auth-flow">
+        <div class="auth-flow-title">▸ Fluxo de autenticação</div>
+        <div class="auth-flow-steps">
+          <div class="auth-step" style="border-color:#f59e0b;color:#f59e0b">Browser</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step">CloudFront</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step" style="border-color:#ff6b35;color:#ff6b35">Lambda@Edge</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step" style="border-color:#f59e0b;color:#f59e0b">Cognito</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step" style="border-color:#10b981;color:#10b981">✓ Serve HTML</div>
+        </div>
+      </div>
+
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-edge">⚙</div>
+          <div>
+            <div class="svc-name">Lambda@Edge</div>
+            <div class="svc-role">Intercepta requisições no CloudFront. Verifica sessão Cognito ativa. Redireciona para login se não autenticado. Executado na borda AWS.</div>
+            <div class="svc-meta"><span class="svc-task">Task 2.3.3</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-cognito">🔐</div>
+          <div>
+            <div class="svc-name">Cognito User Pool</div>
+            <div class="svc-role">Login com email/senha + Google OAuth 2.0 + MFA (TOTP). Auto-signup desabilitado. Usuária criada manualmente pelo admin.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.2.1</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Camada 2 -->
+    <div class="phase p-auth">
+      <div class="phase-header">
+        <div class="phase-num">Fase 4 — Auth Camada 2</div>
+        <div class="phase-title">Acesso à API</div>
+      </div>
+
+      <div class="auth-flow">
+        <div class="auth-flow-title">▸ JWT Authorization</div>
+        <div class="auth-flow-steps">
+          <div class="auth-step">Login</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step" style="border-color:#f59e0b;color:#f59e0b">JWT Token</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step">API Gateway</div>
+          <div class="auth-arrow">→</div>
+          <div class="auth-step" style="border-color:#10b981;color:#10b981">✓ Lambda</div>
+        </div>
+      </div>
+
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-apigw">⚡</div>
+          <div>
+            <div class="svc-name">Cognito Authorizer (API GW)</div>
+            <div class="svc-role">Valida JWT automaticamente no API Gateway. 401 sem código no Lambda. Refresh Token para renovação de sessão sem novo login.</div>
+            <div class="svc-meta"><span class="svc-task">Task 2.3.3 · 3.2.1</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-waf">🛡</div>
+          <div>
+            <div class="svc-name">AWS WAF</div>
+            <div class="svc-role">Integrado ao API Gateway e CloudFront. Rate limiting por IP. Bloqueia requisições maliciosas antes de chegarem ao Lambda.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.1.4</span><span class="svc-new">NOVO</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-layout-3 -->
+
+  <!-- ── FASE 5: Obs + Eval ── -->
+  <div class="main-layout">
+
+    <!-- Observabilidade -->
+    <div class="phase p-obs">
+      <div class="phase-header">
+        <div class="phase-num">Fase 5 — Observabilidade</div>
+        <div class="phase-title">Monitoramento & Otimização</div>
+      </div>
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-cloudwatch">📊</div>
+          <div>
+            <div class="svc-name">Amazon CloudWatch</div>
+            <div class="svc-role">Dashboard: token usage, latência P95, custo/query, hallucination rate. Anomaly detection para bursts. Bedrock Model Invocation Logs.</div>
+            <div class="svc-meta"><span class="svc-task">Task 4.3.1 · 4.3.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-xray">⊕</div>
+          <div>
+            <div class="svc-name">AWS X-Ray</div>
+            <div class="svc-role">Distributed tracing: API Gateway → Lambda → Bedrock → OpenSearch → DynamoDB. Identifica gargalos em cada etapa do pipeline RAG.</div>
+            <div class="svc-meta"><span class="svc-task">Task 4.3.1</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-cloudtrail">📋</div>
+          <div>
+            <div class="svc-name">AWS CloudTrail</div>
+            <div class="svc-role">Audit log de todas as chamadas Bedrock, S3, OpenSearch. Rastreabilidade completa de cada invocação de modelo. Compliance.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.3.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-elasticache">⚙</div>
+          <div>
+            <div class="svc-name">ElastiCache (Redis)</div>
+            <div class="svc-role">Semantic caching: hash da query → resposta cacheada. Evita chamadas repetidas ao Bedrock. Reduz custo e latência em até 90% para queries recorrentes.</div>
+            <div class="svc-meta"><span class="svc-task">Task 4.1.4</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Evaluation -->
+    <div class="phase p-eval">
+      <div class="phase-header">
+        <div class="phase-num">Fase 5 — Avaliação</div>
+        <div class="phase-title">Model Evaluation & Responsible AI</div>
+      </div>
+      <div class="services">
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">Bedrock Model Evaluations</div>
+            <div class="svc-role">Golden dataset de 50+ perguntas de eng. de materiais. Métricas automáticas: faithfulness, answer relevancy, context recall, completeness.</div>
+            <div class="svc-meta"><span class="svc-task">Task 5.1.1 · 5.1.2</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-bedrock">⬡</div>
+          <div>
+            <div class="svc-name">LLM-as-a-Judge (Bedrock)</div>
+            <div class="svc-role">Segundo modelo Claude avalia qualidade das respostas automaticamente. Fecha loop de melhoria contínua. Detecta drift de resposta.</div>
+            <div class="svc-meta"><span class="svc-task">Task 5.1.5</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-sagemaker">🧪</div>
+          <div>
+            <div class="svc-name">SageMaker Clarify</div>
+            <div class="svc-role">Avalia bias nas respostas. Model cards documentando limitações do sistema, dados de treino e métricas de performance.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.4.2 · 5.1.1</span></div>
+          </div>
+        </div>
+        <div class="svc">
+          <div class="svc-icon ic-macie">🔎</div>
+          <div>
+            <div class="svc-name">Amazon Macie</div>
+            <div class="svc-role">Detecta PII nos PDFs armazenados no S3. Alerta via EventBridge. IAM + KMS para least privilege e criptografia em repouso.</div>
+            <div class="svc-meta"><span class="svc-task">Task 3.2.2 · 3.2.1</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-layout -->
+
+  <!-- ── Footer notes ── -->
+  <div class="notes">
+    <div class="note-card">
+      <div class="note-title">💰 Custo Estimado</div>
+      <p>
+        <strong>~$15–25/mês</strong> uso pessoal com as novas funcionalidades.<br><br>
+        Maior custo: OpenSearch Serverless (~$0.24/OCU-h).<br>
+        Alternativa econômica: <em>Aurora + pgvector</em> para dev.<br>
+        ElastiCache reduz custo Bedrock em recorrências.
+      </p>
+    </div>
+    <div class="note-card">
+      <div class="note-title">📚 Cobertura do Exame</div>
+      <p>
+        <strong>D1:</strong> Tasks 1.2, 1.3, 1.4, 1.5, 1.6 ✓<br>
+        <strong>D2:</strong> Tasks 2.3, 2.4, 2.5 ✓<br>
+        <strong>D3:</strong> Tasks 3.1, 3.2, 3.3, 3.4 ✓<br>
+        <strong>D4:</strong> Tasks 4.1, 4.3 ✓<br>
+        <strong>D5:</strong> Tasks 5.1 completa ✓
+      </p>
+    </div>
+    <div class="note-card">
+      <div class="note-title">🔐 Auth — 2 Camadas</div>
+      <p>
+        <strong>Camada 1:</strong> Lambda@Edge + Cognito — controla quem acessa o frontend.<br><br>
+        <strong>Camada 2:</strong> Cognito Authorizer no API Gateway — valida JWT em cada chamada de API.
+      </p>
+    </div>
+    <div class="note-card">
+      <div class="note-title">🔜 Fase Futura — Agentes</div>
+      <p>
+        <strong>Strands Agent</strong> com tool para APIs de propriedades de materiais.<br><br>
+        Servidor MCP em <em>ECS</em> para tools complexas.<br>
+        Cobre Tasks 2.1 inteiro + lacuna de agentes identificada.
+      </p>
+    </div>
+  </div>
+
+</div><!-- /page -->
+</body>
+</html>
