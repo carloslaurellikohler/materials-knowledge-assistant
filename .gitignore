@@ -9,3 +9,12 @@ livros/
 
 # Virtual environments
 .venv
+
+# Environment secrets — nunca commitar
+.env
+backend/.env
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/.pnp*

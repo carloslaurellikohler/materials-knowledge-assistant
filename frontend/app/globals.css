@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  @apply border-border;
+}
+
+html,
+body {
+  @apply bg-background text-foreground antialiased;
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+}
