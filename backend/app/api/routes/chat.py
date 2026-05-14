@@ -17,12 +17,18 @@ async def _stream_events(
     payload: ChatRequest,
     request_id: str | None,
 ) -> AsyncGenerator[dict, None]:
-    async for token, citations in stream_chat(client, payload.message, payload.metadata_filters, request_id=request_id):
-        if citations is not None:
-            yield {"event": "citations", "data": json.dumps([c.model_dump() for c in citations])}
-        else:
-            yield {"event": "token", "data": token}
-    yield {"event": "done", "data": "ok"}
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        async for token, citations in stream_chat(client, payload.message, payload.metadata_filters, request_id=request_id):
+            if citations is not None:
+                yield {"event": "citations", "data": json.dumps([c.model_dump() for c in citations])}
+            else:
+                yield {"event": "token", "data": token}
+        yield {"event": "done", "data": "ok"}
+    except Exception as exc:
+        logger.exception("stream_chat error: %s", exc)
+        yield {"event": "error", "data": str(exc)}
 
 
 @router.post("/chat")

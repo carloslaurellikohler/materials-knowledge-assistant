@@ -23,6 +23,8 @@ services:
       - CLERK_JWT_SECRET=${CLERK_JWT_SECRET:-dev-secret}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - COHERE_API_KEY=${COHERE_API_KEY:-}
+    volumes:
+      - ./backend/livros:/app/livros:ro
     depends_on:
       - qdrant
       - redis
@@ -36,6 +38,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - COHERE_API_KEY=${COHERE_API_KEY:-}
+    volumes:
+      - ./backend/livros:/app/livros:ro
     depends_on:
       - qdrant
       - redis

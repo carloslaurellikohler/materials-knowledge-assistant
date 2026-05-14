@@ -76,6 +76,12 @@ export function useChatSession(token: string | null) {
       setError(err instanceof Error ? err.message : "Failed to send message");
     } finally {
       setIsStreaming(false);
+      // Guard: if stream closed without a "done" event, mark message as done
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantId && msg.status === "streaming" ? { ...msg, citations, status: "done" } : msg,
+        ),
+      );
     }
   }, [token, canSend, input]);
 
@@ -91,9 +97,13 @@ export function useChatSession(token: string | null) {
       setUploads((prev) => [...prev, { id, filename: file.name, type, status: "queued" }]);
       try {
         setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, status: "uploading" } : u)));
-        await uploadAttachment(token, file, type);
-        setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, status: "processing" } : u)));
-        setUploads((prev) => prev.map((u) => (u.id === id ? { ...u, status: "success" } : u)));
+        const uploadResult = await uploadAttachment(token, file, type);
+        setUploads((prev) =>
+          prev.map((u) => (u.id === id ? { ...u, status: "success", result: uploadResult.result } : u)),
+        );
+        setInput((prev) =>
+          prev.trim() ? `${prev.trim()}\n\n${uploadResult.result}` : uploadResult.result,
+        );
       } catch (err) {
         setUploads((prev) =>
           prev.map((u) =>
@@ -104,6 +114,13 @@ export function useChatSession(token: string | null) {
     },
     [token],
   );
+
+  const clearSession = useCallback(() => {
+    setMessages([]);
+    setUploads([]);
+    setInput("");
+    setError(null);
+  }, []);
 
   return {
     messages,
@@ -117,6 +134,6 @@ export function useChatSession(token: string | null) {
     sendMessage,
     loadDocuments,
     addUpload,
+    clearSession,
   };
 }
-

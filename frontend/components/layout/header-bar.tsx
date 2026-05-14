@@ -1,5 +1,6 @@
 "use client";
 
+import { SignOutButton, UserButton } from "@clerk/nextjs";
 import { LogOut } from "lucide-react";
 
 import { isClerkEnabled } from "@/app/lib/clerk";
@@ -22,8 +23,6 @@ export function HeaderBar() {
 }
 
 function AuthActions() {
-  const { SignOutButton, UserButton } = require("@clerk/nextjs");
-
   return (
     <>
       <UserButton afterSignOutUrl="/sign-in" />

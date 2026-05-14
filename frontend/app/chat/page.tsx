@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState } from "react";
+
+import { useAuth } from "@clerk/nextjs";
 
 import { ChatComposer } from "@/components/chat/chat-composer";
 import { ChatWindow } from "@/components/chat/chat-window";
@@ -8,6 +12,7 @@ import { DocumentPanel } from "@/components/chat/document-panel";
 import { HeaderBar } from "@/components/layout/header-bar";
 import { UploadPanel } from "@/components/upload/upload-panel";
 import { useChatSession } from "@/hooks/use-chat-session";
+import { isClerkEnabled } from "@/app/lib/clerk";
 
 function ChatWorkspace({ token }: { token: string | null }) {
   const session = useChatSession(token);
@@ -16,7 +21,7 @@ function ChatWorkspace({ token }: { token: string | null }) {
     if (token) {
       void session.loadDocuments();
     }
-  }, [token, session]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen bg-background">
@@ -27,7 +32,7 @@ function ChatWorkspace({ token }: { token: string | null }) {
           <UploadPanel onUpload={session.addUpload} uploads={session.uploads} />
         </section>
         <section className="grid gap-4 lg:grid-rows-[1fr_auto]">
-          <ChatWindow messages={session.messages} />
+          <ChatWindow messages={session.messages} onClear={session.clearSession} />
           <ChatComposer
             disabled={!session.canSend}
             error={session.error}
@@ -41,6 +46,29 @@ function ChatWorkspace({ token }: { token: string | null }) {
   );
 }
 
+function ClerkChatPage() {
+  const { isLoaded, getToken } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    const load = async () => {
+      const t = await getToken();
+      setToken(t);
+    };
+    void load();
+    const interval = setInterval(() => {
+      void load();
+    }, 50_000);
+    return () => clearInterval(interval);
+  }, [isLoaded, getToken]);
+
+  return <ChatWorkspace token={token} />;
+}
+
 export default function ChatPage() {
+  if (isClerkEnabled) {
+    return <ClerkChatPage />;
+  }
   return <ChatWorkspace token={null} />;
 }

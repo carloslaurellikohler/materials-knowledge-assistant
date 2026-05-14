@@ -21,6 +21,7 @@ export type UploadItem = {
   type: "image" | "audio";
   status: "queued" | "uploading" | "processing" | "success" | "error";
   error?: string;
+  result?: string;
 };
 
 export type SseEvent =
@@ -28,4 +29,3 @@ export type SseEvent =
   | { event: "citations"; data: Citation[] }
   | { event: "done"; data: string }
   | { event: "error"; data: string };
-

@@ -36,7 +36,8 @@ export async function streamChat(
     body: JSON.stringify({ message, attachments: [], metadata_filters }),
   });
   if (!res.ok || !res.body) {
-    throw new Error("Unable to stream answer");
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status}: ${body || "Unable to stream answer"}`);
   }
 
   for await (const event of parseSseStream(res.body)) {
@@ -47,7 +48,11 @@ export async function streamChat(
   }
 }
 
-export async function uploadAttachment(token: string, file: File, type: "image" | "audio"): Promise<void> {
+export async function uploadAttachment(
+  token: string,
+  file: File,
+  type: "image" | "audio",
+): Promise<{ result: string }> {
   const endpoint = type === "image" ? "upload/image" : "upload/audio";
   const formData = new FormData();
   formData.append("file", file);
@@ -56,6 +61,7 @@ export async function uploadAttachment(token: string, file: File, type: "image" 
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-  if (!res.ok) throw new Error(`Failed to upload ${type}`);
+  if (!res.ok) throw new Error(`Failed to upload ${type} (HTTP ${res.status})`);
+  const data = (await res.json()) as { description?: string; transcript?: string };
+  return { result: data.description ?? data.transcript ?? "" };
 }
-

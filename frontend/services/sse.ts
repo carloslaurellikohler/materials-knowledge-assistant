@@ -11,6 +11,7 @@ export async function* parseSseStream(
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
+    buffer = buffer.replace(/\r\n/g, "\n");
     const blocks = buffer.split("\n\n");
     buffer = blocks.pop() ?? "";
 

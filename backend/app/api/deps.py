@@ -49,8 +49,9 @@ def get_current_user(authorization: str = Header(default="")) -> dict:
     try:
         payload = _decode_token(token)
         return {"sub": payload.get("sub", "unknown")}
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
+    except Exception as exc:
+        logger.error("Token validation failed: %s: %s", type(exc).__name__, exc)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {type(exc).__name__}: {exc}") from exc
 
 
 async def get_qdrant_client() -> AsyncGenerator[AsyncQdrantClient, None]:
