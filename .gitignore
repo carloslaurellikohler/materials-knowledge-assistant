@@ -13,6 +13,7 @@ livros/
 # Environment secrets — nunca commitar
 .env
 backend/.env
+frontend/.env
 
 # Node
 frontend/node_modules/
