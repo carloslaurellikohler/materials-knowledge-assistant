@@ -56,6 +56,9 @@ def _point_id(checksum: str, page_num: int, chunk_idx: int) -> int:
     return int(digest[:16], 16) & 0x7FFFFFFFFFFFFFFF
 
 
+_MAX_CHUNK_CHARS = 8_000  # mirrors openai_client._MAX_CHARS; digits tokenize 1 char/token
+
+
 def _chunk_text(text: str, size: int = 1200, overlap: int = 200) -> list[str]:
     tokens = text.split()
     if not tokens:
@@ -66,7 +69,11 @@ def _chunk_text(text: str, size: int = 1200, overlap: int = 200) -> list[str]:
         subset = tokens[start : start + size]
         if not subset:
             break
-        chunks.append(" ".join(subset))
+        chunk = " ".join(subset)
+        # Guard against pathological pages (tables, merged numbers) that exceed token limit
+        if len(chunk) > _MAX_CHUNK_CHARS:
+            chunk = chunk[:_MAX_CHUNK_CHARS]
+        chunks.append(chunk)
     return chunks
 
 

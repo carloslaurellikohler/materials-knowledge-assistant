@@ -8,7 +8,9 @@ from app.core.config import settings
 from app.rag.prompts import SYSTEM_PROMPT, VISION_PROMPT
 
 _MAX_BATCH = 256
-_MAX_CHARS = 30_000  # ~7500 tokens at 4 chars/token — safely below 8192 token limit
+# Hard cap per chunk: digits tokenize 1 char/token, so 8000 chars ≤ 8000 tokens < 8192 limit.
+# Normal prose (~4 chars/token) gives ~2000 tokens per chunk, which is ideal for RAG retrieval.
+_MAX_CHARS = 8_000
 
 
 def _safe_truncate(texts: list[str]) -> list[str]:

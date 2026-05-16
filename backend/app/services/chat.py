@@ -59,8 +59,17 @@ async def stream_chat(
     ]
     cited = bool(citations)
 
+    def _format_chunk(chunk) -> str:
+        parts = [f"[Documento: {chunk.source}"]
+        if chunk.section:
+            parts.append(f" | Seção: {chunk.section}")
+        if chunk.page:
+            parts.append(f" | p. {chunk.page}")
+        parts.append("]")
+        return "".join(parts) + "\n" + chunk.text
+
     t1 = time.monotonic()
-    async for token in stream_answer(message, [chunk.text for chunk in chunks]):
+    async for token in stream_answer(message, [_format_chunk(c) for c in chunks]):
         yield token, None
     llm_ms = (time.monotonic() - t1) * 1000
 

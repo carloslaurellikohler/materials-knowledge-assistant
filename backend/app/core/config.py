@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     clerk_jwt_secret: str = "dev-secret"
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
-    openai_chat_model: str = "gpt-4.1"
+    openai_chat_model: str = "gpt-5.4"
     openai_vision_model: str = "gpt-4o"
     openai_whisper_model: str = "whisper-1"
     qdrant_url: str = "http://localhost:6333"
