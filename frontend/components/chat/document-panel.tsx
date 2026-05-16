@@ -11,7 +11,7 @@ export function DocumentPanel({
   onRefresh: () => Promise<void>;
 }) {
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Database className="h-4 w-4" />

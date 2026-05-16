@@ -35,14 +35,14 @@ export function ChatWindow({
           </Button>
         ) : null}
       </CardHeader>
-      <CardContent className="max-h-[65vh] space-y-4 overflow-auto">
+      <CardContent className="max-h-[65vh] space-y-4 overflow-x-hidden overflow-y-auto">
         {messages.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
             Start a conversation with your indexed engineering corpus.
           </div>
         ) : null}
         {messages.map((msg) => (
-          <article className="rounded-md border border-border p-3" key={msg.id}>
+          <article className="min-w-0 break-words rounded-md border border-border p-3" key={msg.id}>
             <div className="mb-2 flex items-center gap-2">
               <Badge>{msg.role === "user" ? "User" : "Assistant"}</Badge>
               {msg.status ? <span className="text-xs text-muted-foreground">{msg.status}</span> : null}

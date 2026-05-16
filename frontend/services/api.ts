@@ -1,7 +1,7 @@
 import { Citation } from "@/types/chat";
 import { parseSseStream } from "@/services/sse";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+const API_URL = "/api/v1";
 
 export type StreamHandlers = {
   onToken: (token: string) => void;

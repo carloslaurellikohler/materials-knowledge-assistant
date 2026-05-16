@@ -18,7 +18,7 @@ export async function* parseSseStream(
     for (const block of blocks) {
       const lines = block.split("\n");
       const event = lines.find((line) => line.startsWith("event:"))?.replace("event:", "").trim();
-      const data = lines.find((line) => line.startsWith("data:"))?.replace("data:", "").trim() ?? "";
+      const data = lines.find((line) => line.startsWith("data:"))?.replace(/^data: ?/, "") ?? "";
       if (!event) continue;
       if (event === "token") yield { event: "token", data };
       if (event === "done") yield { event: "done", data };

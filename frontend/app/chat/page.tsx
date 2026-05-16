@@ -27,11 +27,11 @@ function ChatWorkspace({ token }: { token: string | null }) {
     <div className="min-h-screen bg-background">
       <HeaderBar />
       <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 p-4 lg:grid-cols-[320px_1fr]">
-        <section className="space-y-4">
+        <section className="space-y-4 self-start">
           <DocumentPanel documents={session.documents} onRefresh={session.loadDocuments} />
           <UploadPanel onUpload={session.addUpload} uploads={session.uploads} />
         </section>
-        <section className="grid gap-4 lg:grid-rows-[1fr_auto]">
+        <section className="grid min-w-0 gap-4 lg:grid-rows-[1fr_auto]">
           <ChatWindow messages={session.messages} onClear={session.clearSession} />
           <ChatComposer
             disabled={!session.canSend}
