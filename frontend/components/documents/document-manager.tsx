@@ -138,12 +138,14 @@ export function DocumentManager({
                     )}
                   </div>
                   <Button
-                    className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-600"
+                    aria-label={`Excluir ${doc.original_filename}`}
+                    className="h-8 w-8 shrink-0 border border-red-200 bg-white p-0 text-red-600 hover:border-red-600 hover:bg-red-600 hover:text-white"
                     size="sm"
+                    title="Excluir documento e seus vetores"
                     variant="ghost"
                     onClick={() => void handleDelete(doc)}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </li>
