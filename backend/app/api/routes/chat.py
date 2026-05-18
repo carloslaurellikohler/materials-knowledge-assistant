@@ -16,11 +16,12 @@ async def _stream_events(
     client: AsyncQdrantClient,
     payload: ChatRequest,
     request_id: str | None,
+    user_id: str | None,
 ) -> AsyncGenerator[dict, None]:
     import logging
     logger = logging.getLogger(__name__)
     try:
-        async for token, citations in stream_chat(client, payload.message, payload.metadata_filters, request_id=request_id):
+        async for token, citations in stream_chat(client, payload.message, payload.metadata_filters, request_id=request_id, user_id=user_id):
             if citations is not None:
                 yield {"event": "citations", "data": json.dumps([c.model_dump() for c in citations])}
             else:
@@ -35,8 +36,9 @@ async def _stream_events(
 async def chat(
     request: Request,
     payload: ChatRequest,
-    _: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     client: AsyncQdrantClient = Depends(get_qdrant_client),
 ) -> EventSourceResponse:
     request_id = getattr(request.state, "request_id", None)
-    return EventSourceResponse(_stream_events(client, payload, request_id))
+    user_id = current_user.get("sub")
+    return EventSourceResponse(_stream_events(client, payload, request_id, user_id))

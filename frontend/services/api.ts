@@ -1,4 +1,4 @@
-import { Citation } from "@/types/chat";
+import { Citation, UserDocument } from "@/types/chat";
 import { parseSseStream } from "@/services/sse";
 
 const API_URL = "/api/v1";
@@ -10,15 +10,42 @@ export type StreamHandlers = {
   onError: (message: string) => void;
 };
 
-export async function fetchDocuments(token: string): Promise<string[]> {
+export async function fetchDocuments(token: string): Promise<UserDocument[]> {
   const res = await fetch(`${API_URL}/documents`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
     throw new Error("Failed to load documents");
   }
-  const data = (await res.json()) as Array<{ source: string }>;
-  return data.map((item) => item.source);
+  return (await res.json()) as UserDocument[];
+}
+
+export async function uploadDocument(
+  token: string,
+  file: File,
+): Promise<{ document_id: string; indexing_status: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_URL}/documents`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Upload failed (HTTP ${res.status}): ${body}`);
+  }
+  return (await res.json()) as { document_id: string; indexing_status: string };
+}
+
+export async function deleteDocument(token: string, documentId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/documents/${documentId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Delete failed (HTTP ${res.status})`);
+  }
 }
 
 export async function streamChat(

@@ -19,6 +19,7 @@ async def stream_chat(
     message: str,
     metadata_filters: dict,
     request_id: str | None = None,
+    user_id: str | None = None,
 ) -> AsyncGenerator[tuple[str, list[Citation] | None], None]:
     """Yield (token, None) per streamed token, then ("", citations) at the end."""
     rid = request_id or str(uuid.uuid4())
@@ -33,6 +34,7 @@ async def stream_chat(
         query_vector=query_vector,
         metadata_filters=metadata_filters,
         limit=settings.retrieval_top_k_candidates,
+        user_id=user_id,
     )
     reranker = get_reranker()
     if reranker and candidates:

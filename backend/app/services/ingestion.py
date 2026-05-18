@@ -406,3 +406,90 @@ def ingest_single_pdf(pdf_path: str, *, batch_size: int = 128, verbose: bool = T
     if verbose:
         print(f"[done] {pdf.name} | chunks: {total_chunks}")
     return {"documents": 1, "chunks": total_chunks, "source": pdf.name}
+
+
+def _user_point_id(user_id: str, document_id: str, page_num: int, chunk_idx: int) -> int:
+    """Generate a point ID unique per user+document to avoid cross-user collisions."""
+    raw = f"{user_id}-{document_id}-{page_num}-{chunk_idx}".encode("utf-8")
+    digest = hashlib.sha256(raw).hexdigest()
+    return int(digest[:16], 16) & 0x7FFFFFFFFFFFFFFF
+
+
+def ingest_pdf_bytes(
+    pdf_bytes: bytes,
+    filename: str,
+    *,
+    user_id: str,
+    document_id: str,
+    batch_size: int = 128,
+    status_callback: Any = None,
+) -> dict:
+    """Ingest a PDF from raw bytes (used by the user-upload pipeline).
+
+    status_callback(status: str) is called at each major step so the caller
+    can persist progress to the database.
+    """
+    import tempfile
+
+    def _cb(s: str) -> None:
+        if status_callback:
+            status_callback(s)
+
+    _cb("processing")
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp.write(pdf_bytes)
+        tmp_path = Path(tmp.name)
+
+    try:
+        client = QdrantClient(url=settings.qdrant_url)
+        _ensure_collection(client, recreate=False)
+
+        checksum = _file_sha(tmp_path)
+
+        _cb("chunking")
+        pages = _extract_pages(tmp_path)
+        doc_meta = _extract_metadata(tmp_path)
+        # Use the original filename for metadata, not the temp path
+        doc_meta_with_name = {**doc_meta}
+        if not doc_meta_with_name.get("title"):
+            doc_meta_with_name["title"] = Path(filename).stem
+
+        now = datetime.now(tz=timezone.utc).isoformat()
+        pending: list[tuple[int, dict, str]] = []
+        total_chunks = 0
+
+        _cb("embedding")
+        for page_num, page_text in pages:
+            struct = _detect_structure(page_text)
+            for chunk_idx, (chunk, chunk_section) in enumerate(_chunk_by_structure(page_text)):
+                total_chunks += 1
+                payload: dict[str, Any] = {
+                    "source": filename,
+                    "source_id": checksum,
+                    "user_id": user_id,
+                    "document_id": document_id,
+                    "page": page_num,
+                    "chunk_id": f"{Path(filename).stem}-{page_num}-{chunk_idx}",
+                    "text": chunk,
+                    "document_type": doc_meta_with_name["document_type"],
+                    "ingestion_timestamp": now,
+                    "author": doc_meta_with_name["author"],
+                    "title": doc_meta_with_name["title"],
+                    "chapter": struct["chapter"],
+                    "section": chunk_section or struct["section"],
+                    "material_type": struct["material_type"],
+                    "environment": None,
+                }
+                pending.append((_user_point_id(user_id, document_id, page_num, chunk_idx), payload, chunk))
+                if len(pending) >= batch_size:
+                    _flush_pending(client, pending, False, total_chunks)
+                    pending = []
+
+        if pending:
+            _flush_pending(client, pending, False, total_chunks)
+
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return {"chunks": total_chunks, "source": filename}

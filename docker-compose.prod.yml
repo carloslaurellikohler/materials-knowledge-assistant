@@ -5,6 +5,9 @@ services:
   redis:
     restart: unless-stopped
 
+  postgres:
+    restart: unless-stopped
+
   backend:
     restart: unless-stopped
 

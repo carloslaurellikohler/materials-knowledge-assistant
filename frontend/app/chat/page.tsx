@@ -8,7 +8,7 @@ import { useAuth } from "@clerk/nextjs";
 
 import { ChatComposer } from "@/components/chat/chat-composer";
 import { ChatWindow } from "@/components/chat/chat-window";
-import { DocumentPanel } from "@/components/chat/document-panel";
+import { DocumentManager } from "@/components/documents/document-manager";
 import { HeaderBar } from "@/components/layout/header-bar";
 import { UploadPanel } from "@/components/upload/upload-panel";
 import { useChatSession } from "@/hooks/use-chat-session";
@@ -28,7 +28,11 @@ function ChatWorkspace({ token }: { token: string | null }) {
       <HeaderBar />
       <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 p-4 lg:grid-cols-[320px_1fr]">
         <section className="space-y-4 self-start">
-          <DocumentPanel documents={session.documents} onRefresh={session.loadDocuments} />
+          <DocumentManager
+            documents={session.documents}
+            onUpload={session.uploadPdf}
+            onDelete={session.removePdf}
+          />
           <UploadPanel onUpload={session.addUpload} uploads={session.uploads} />
         </section>
         <section className="grid min-w-0 gap-4 lg:grid-rows-[1fr_auto]">

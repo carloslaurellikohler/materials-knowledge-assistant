@@ -24,6 +24,27 @@ export type UploadItem = {
   result?: string;
 };
 
+export type DocumentStatus =
+  | "pending"
+  | "processing"
+  | "chunking"
+  | "embedding"
+  | "indexed"
+  | "error";
+
+export type UserDocument = {
+  id: string;
+  filename: string;
+  original_filename: string;
+  size: number;
+  indexing_status: DocumentStatus;
+  indexing_error?: string | null;
+  chunk_count?: number | null;
+  embedding_model?: string | null;
+  qdrant_collection: string;
+  created_at: string;
+};
+
 export type SseEvent =
   | { event: "token"; data: string }
   | { event: "citations"; data: Citation[] }

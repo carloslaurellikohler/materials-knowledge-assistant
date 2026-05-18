@@ -22,8 +22,11 @@ async def retrieve_context(
     query_vector: list[float],
     metadata_filters: dict,
     limit: int = 5,
+    user_id: str | None = None,
 ) -> list[RetrievedChunk]:
     must = []
+    if user_id:
+        must.append(FieldCondition(key="user_id", match=MatchValue(value=user_id)))
     for key, value in metadata_filters.items():
         must.append(FieldCondition(key=key, match=MatchValue(value=value)))
     query_filter = Filter(must=must) if must else None

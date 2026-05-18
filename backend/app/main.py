@@ -10,16 +10,17 @@ from app.api.routes.documents import router as documents_router
 from app.api.routes.health import router as health_router
 from app.api.routes.metrics import router as metrics_router
 from app.api.routes.multimodal import router as multimodal_router
-from app.api.routes.upload import router as upload_router
 from app.api.schemas.error import ErrorDetail, ErrorResponse
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.db.database import create_tables
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if settings.app_env != "test" and not settings.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY must be set in non-test environments")
+    await create_tables()
     yield
 
 
@@ -67,4 +68,3 @@ app.include_router(metrics_router, prefix=settings.api_prefix)
 app.include_router(chat_router, prefix=settings.api_prefix)
 app.include_router(documents_router, prefix=settings.api_prefix)
 app.include_router(multimodal_router, prefix=settings.api_prefix)
-app.include_router(upload_router, prefix=settings.api_prefix)

@@ -11,6 +11,17 @@ services:
     ports:
       - "6379:6379"
 
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=mka
+      - POSTGRES_USER=mka
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-mka-dev-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     working_dir: /app
@@ -19,15 +30,18 @@ services:
     environment:
       - QDRANT_URL=http://qdrant:6333
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://mka:${POSTGRES_PASSWORD:-mka-dev-password}@postgres:5432/mka
       - CLERK_JWKS_URL=${CLERK_JWKS_URL:-}
       - CLERK_JWT_SECRET=${CLERK_JWT_SECRET:-dev-secret}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - COHERE_API_KEY=${COHERE_API_KEY:-}
-    volumes:
-      - ./backend/livros:/app/livros:ro
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
+      - SUPABASE_BUCKET=${SUPABASE_BUCKET:-mka-documents}
     depends_on:
       - qdrant
       - redis
+      - postgres
 
   worker:
     build: ./backend
@@ -36,13 +50,16 @@ services:
     environment:
       - QDRANT_URL=http://qdrant:6333
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://mka:${POSTGRES_PASSWORD:-mka-dev-password}@postgres:5432/mka
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - COHERE_API_KEY=${COHERE_API_KEY:-}
-    volumes:
-      - ./backend/livros:/app/livros:ro
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
+      - SUPABASE_BUCKET=${SUPABASE_BUCKET:-mka-documents}
     depends_on:
       - qdrant
       - redis
+      - postgres
 
   frontend:
     build: ./frontend
@@ -60,3 +77,4 @@ services:
 
 volumes:
   qdrant_data:
+  postgres_data:
