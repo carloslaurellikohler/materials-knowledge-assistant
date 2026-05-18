@@ -12,7 +12,7 @@ export function HeaderBar() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
         <div>
           <h1 className="text-sm font-semibold tracking-tight text-foreground">Materials Knowledge Assistant</h1>
-          <p className="text-xs text-muted-foreground">Closed corpus engineering workspace</p>
+          <p className="text-xs text-muted-foreground">Seu assistente pessoal para dúvidas sobre engenharia de materiais</p>
         </div>
         <div className="flex items-center gap-3">
           {isClerkEnabled ? <AuthActions /> : null}
@@ -29,7 +29,7 @@ function AuthActions() {
       <SignOutButton redirectUrl="/sign-in">
         <Button size="sm" variant="ghost">
           <LogOut className="h-4 w-4" />
-          Sign out
+          Sair
         </Button>
       </SignOutButton>
     </>

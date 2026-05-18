@@ -15,17 +15,17 @@ export function DocumentPanel({
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Database className="h-4 w-4" />
-          Indexed Documents
+          Documentos Indexados
         </div>
         <Button onClick={() => void onRefresh()} size="sm" variant="secondary">
           <RefreshCcw className="h-4 w-4" />
-          Refresh
+          Atualizar
         </Button>
       </CardHeader>
       <CardContent className="max-h-[65vh] overflow-auto">
         {documents.length === 0 ? (
           <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-            No documents loaded yet.
+            Nenhum documento carregado ainda.
           </div>
         ) : (
           <ul className="space-y-2">

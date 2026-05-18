@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { UploadItem } from "@/types/chat";
 
 function statusLabel(status: UploadItem["status"]) {
-  if (status === "queued") return "Queued";
-  if (status === "uploading") return "Uploading";
-  if (status === "processing") return "Processing";
-  if (status === "success") return "Ready";
-  return "Error";
+  if (status === "queued") return "Na fila";
+  if (status === "uploading") return "Enviando";
+  if (status === "processing") return "Processando";
+  if (status === "success") return "Pronto";
+  return "Erro";
 }
 
 export function UploadPanel({
@@ -28,7 +28,7 @@ export function UploadPanel({
   return (
     <Card>
       <CardHeader className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-foreground">Multimodal Uploads</h2>
+        <h2 className="text-sm font-semibold text-foreground">Uploads Multimodais</h2>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-2">
@@ -45,7 +45,7 @@ export function UploadPanel({
           />
           <Button size="sm" variant="secondary" onClick={() => imageInputRef.current?.click()}>
             <ImageUp className="mr-1 h-4 w-4" />
-            Upload image
+            Upload de imagem
           </Button>
 
           <input
@@ -61,7 +61,7 @@ export function UploadPanel({
           />
           <Button size="sm" variant="secondary" onClick={() => audioInputRef.current?.click()}>
             <FileAudio className="mr-1 h-4 w-4" />
-            Upload audio
+            Upload de áudio
           </Button>
         </div>
 
@@ -80,7 +80,7 @@ export function UploadPanel({
           </ul>
         ) : (
           <div className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-            Upload image/audio files to enrich prompts in the current session.
+            Envie arquivos de imagem/áudio para enriquecer prompts na sessão atual.
           </div>
         )}
       </CardContent>

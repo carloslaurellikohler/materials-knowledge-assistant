@@ -15,7 +15,7 @@ export async function fetchDocuments(token: string): Promise<UserDocument[]> {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
-    throw new Error("Failed to load documents");
+    throw new Error("Falha ao carregar documentos");
   }
   return (await res.json()) as UserDocument[];
 }
@@ -33,7 +33,7 @@ export async function uploadDocument(
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Upload failed (HTTP ${res.status}): ${body}`);
+    throw new Error(`Falha no upload (HTTP ${res.status}): ${body}`);
   }
   return (await res.json()) as { document_id: string; indexing_status: string };
 }
@@ -44,7 +44,7 @@ export async function deleteDocument(token: string, documentId: string): Promise
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
-    throw new Error(`Delete failed (HTTP ${res.status})`);
+    throw new Error(`Falha ao excluir (HTTP ${res.status})`);
   }
 }
 
@@ -64,7 +64,7 @@ export async function streamChat(
   });
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${body || "Unable to stream answer"}`);
+    throw new Error(`HTTP ${res.status}: ${body || "Não foi possível transmitir a resposta"}`);
   }
 
   for await (const event of parseSseStream(res.body)) {
@@ -88,7 +88,7 @@ export async function uploadAttachment(
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-  if (!res.ok) throw new Error(`Failed to upload ${type} (HTTP ${res.status})`);
+  if (!res.ok) throw new Error(`Falha no upload de ${type === "image" ? "imagem" : "áudio"} (HTTP ${res.status})`);
   const data = (await res.json()) as { description?: string; transcript?: string };
   return { result: data.description ?? data.transcript ?? "" };
 }

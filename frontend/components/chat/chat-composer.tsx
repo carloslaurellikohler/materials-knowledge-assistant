@@ -30,12 +30,12 @@ export function ChatComposer({
       <CardHeader className="text-sm font-semibold text-foreground">Prompt</CardHeader>
       <CardContent>
         <form className="space-y-3" onSubmit={submit}>
-          <Textarea onChange={(event) => onChange(event.target.value)} placeholder="Ask about materials behavior, corrosion, testing, or standards..." value={value} />
+          <Textarea onChange={(event) => onChange(event.target.value)} placeholder="Pergunte sobre comportamento de materiais, corrosão, ensaios ou normas..." value={value} />
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end">
             <Button disabled={disabled} type="submit">
               <Send className="h-4 w-4" />
-              {disabled ? "Streaming..." : "Send"}
+              {disabled ? "Gerando resposta..." : "Enviar"}
             </Button>
           </div>
         </form>

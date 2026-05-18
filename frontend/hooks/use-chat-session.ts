@@ -33,7 +33,7 @@ export function useChatSession(token: string | null) {
       setDocuments(items);
       return items;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load documents");
+      setError(err instanceof Error ? err.message : "Não foi possível carregar os documentos");
       return [];
     }
   }, [token]);
@@ -106,12 +106,12 @@ export function useChatSession(token: string | null) {
           setMessages((prev) =>
             prev.map((msg) => (msg.id === assistantId ? { ...msg, status: "error" } : msg)),
           );
-          setError(messageText || "Streaming failed");
+          setError(messageText || "Falha ao gerar resposta");
         },
       });
     } catch (err) {
       setMessages((prev) => prev.map((msg) => (msg.id === assistantId ? { ...msg, status: "error" } : msg)));
-      setError(err instanceof Error ? err.message : "Failed to send message");
+      setError(err instanceof Error ? err.message : "Falha ao enviar mensagem");
     } finally {
       setIsStreaming(false);
       // Guard: if stream closed without a "done" event, mark message as done
@@ -129,7 +129,7 @@ export function useChatSession(token: string | null) {
       const id = uid();
       const limit = type === "image" ? MAX_IMAGE_SIZE : MAX_AUDIO_SIZE;
       if (file.size > limit) {
-        setUploads((prev) => [...prev, { id, filename: file.name, type, status: "error", error: "File too large" }]);
+        setUploads((prev) => [...prev, { id, filename: file.name, type, status: "error", error: "Arquivo muito grande" }]);
         return;
       }
       setUploads((prev) => [...prev, { id, filename: file.name, type, status: "queued" }]);
@@ -145,7 +145,7 @@ export function useChatSession(token: string | null) {
       } catch (err) {
         setUploads((prev) =>
           prev.map((u) =>
-            u.id === id ? { ...u, status: "error", error: err instanceof Error ? err.message : "Upload failed" } : u,
+            u.id === id ? { ...u, status: "error", error: err instanceof Error ? err.message : "Falha no upload" } : u,
           ),
         );
       }
@@ -157,7 +157,7 @@ export function useChatSession(token: string | null) {
     async (file: File) => {
       if (!token) return;
       if (file.size > MAX_PDF_SIZE) {
-        setError(`PDF exceeds maximum size of ${MAX_PDF_SIZE / 1024 / 1024}MB`);
+        setError(`O PDF excede o tamanho máximo de ${MAX_PDF_SIZE / 1024 / 1024} MB`);
         return;
       }
       setError(null);
@@ -166,7 +166,7 @@ export function useChatSession(token: string | null) {
         const updated = await loadDocuments();
         if (updated) startPollingIfNeeded(updated);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "PDF upload failed");
+        setError(err instanceof Error ? err.message : "Falha no upload do PDF");
       }
     },
     [token, loadDocuments, startPollingIfNeeded],
@@ -180,7 +180,7 @@ export function useChatSession(token: string | null) {
         await deleteDocument(token, documentId);
         setDocuments((prev) => prev.filter((d) => d.id !== documentId));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to delete document");
+        setError(err instanceof Error ? err.message : "Falha ao excluir o documento");
       }
     },
     [token],
