@@ -1,4 +1,7 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Annotated
+
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -7,6 +10,18 @@ class Settings(BaseSettings):
     app_name: str = "MKA Backend"
     app_env: str = "dev"
     api_prefix: str = "/api/v1"
+    cors_allowed_origins: Annotated[list[str], NoDecode] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+    @field_validator("cors_allowed_origins", mode="before")
+    @classmethod
+    def _split_csv(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
+
     clerk_jwks_url: str = ""
     clerk_jwt_secret: str = "dev-secret"
     openai_api_key: str = ""
