@@ -12,6 +12,12 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Tolerância de relógio (segundos) na validação de exp/iat/nbf do JWT.
+# Os tokens de sessão do Clerk vivem ~60s; sem leeway, um token pego na borda
+# da expiração (somado à latência de rede até o backend) falha com
+# ExpiredSignatureError e gera 401 transitório no polling do frontend.
+_JWT_LEEWAY = 60
+
 
 @lru_cache(maxsize=1)
 def _get_jwks_client() -> PyJWKClient:
@@ -26,6 +32,7 @@ def _decode_token(token: str) -> dict:
             signing_key.key,
             algorithms=["RS256"],
             options={"verify_aud": False},
+            leeway=_JWT_LEEWAY,
         )
     # Fallback HS256 para dev/test — emite warning fora desses ambientes
     if settings.app_env not in ("dev", "test"):
@@ -33,7 +40,7 @@ def _decode_token(token: str) -> dict:
             "CLERK_JWKS_URL não configurada — usando HS256 inseguro. "
             "Defina CLERK_JWKS_URL para validação RS256 em produção."
         )
-    return jwt.decode(token, settings.clerk_jwt_secret, algorithms=["HS256"])
+    return jwt.decode(token, settings.clerk_jwt_secret, algorithms=["HS256"], leeway=_JWT_LEEWAY)
 
 
 def get_request_id(request: Request) -> str:
