@@ -19,3 +19,9 @@ frontend/.env
 frontend/node_modules/
 frontend/.next/
 frontend/.pnp*
+
+#Regras
+.rules
+
+#Dados sobre como fazer o deploy em VPS
+VPS_DEPLOY.md
