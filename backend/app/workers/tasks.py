@@ -22,7 +22,7 @@ def ingest_single_pdf_task(pdf_path: str) -> dict:
 def ingest_document_task(self, document_id: str) -> dict:
     from app.db.database import SyncSessionLocal
     from app.db.models import Document
-    from app.storage.supabase_provider import get_storage
+    from app.storage.postgres_provider import get_storage
 
     def _set_status(session, doc: Document, new_status: str, error: str | None = None) -> None:
         doc.indexing_status = new_status

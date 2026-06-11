@@ -18,8 +18,7 @@ Frontend  (Next.js 14 · :3000)
   │  HTTP + SSE   (proxy interno /api/v1/[...path] → backend)
   ▼
 Backend   (FastAPI · :8000)
-  ├─── PostgreSQL   (:5432)        metadados de documentos · status de indexação
-  ├─── Supabase Storage             bucket mka-documents/{user_id}/{document_id}/...
+  ├─── PostgreSQL   (:5432)        metadados (documents) · bytes do PDF (document_blobs) · status
   ├─── OpenAI API                   embeddings · chat · vision (GPT-4o) · Whisper
   ├─── Cohere API                   re-ranking (opcional)
   └─── Qdrant       (:6333)         vetores · payload inclui user_id + document_id
@@ -59,8 +58,8 @@ HTTP (síncrono)                        Worker Celery (assíncrono)
 POST /api/v1/documents (multipart)     mka.ingest_document(document_id)
   │                                     │
   ├─ valida MIME + tamanho               ├─ status → "processing"
-  ├─ sanitiza nome                       ├─ baixa PDF do Supabase Storage
-  ├─ upload para Supabase Storage        ├─ extrai páginas (pypdf, OCR opt-in)
+  ├─ sanitiza nome                       ├─ lê bytes do PDF do Postgres
+  ├─ persiste bytes em document_blobs    ├─ extrai páginas (pypdf, OCR opt-in)
   ├─ insere row em documents (pending)   ├─ chunking estrutural          → "chunking"
   ├─ dispara mka.ingest_document         ├─ embed_texts() em lote        → "embedding"
   └─ retorna 202 Accepted +              ├─ upsert no Qdrant (user_id,
@@ -84,7 +83,7 @@ POST /api/v1/documents (multipart)     mka.ingest_document(document_id)
 | Re-ranking | Cohere `rerank-english-v3.0` (opcional) |
 | Vector DB | Qdrant v1.11.3 (payload com `user_id` + `document_id`) |
 | Banco relacional | PostgreSQL 16 + SQLAlchemy 2.0 (async via `asyncpg`, sync via `psycopg2` para Celery) |
-| Object Storage | Supabase Storage (`supabase-py`) — bucket `mka-documents` |
+| Persistência de arquivos | PostgreSQL — bytes do PDF na tabela `document_blobs` (coluna `BYTEA`) |
 | Migrations | Alembic (instalado; schema atualmente criado em runtime via `Base.metadata.create_all` no lifespan — `backend/app/main.py:23`) |
 | Task queue | Celery + Redis 7 |
 | PDF parsing | pypdf + PyMuPDF (OCR opt-in via GPT-4o) |
@@ -98,7 +97,6 @@ POST /api/v1/documents (multipart)     mka.ingest_document(document_id)
 
 - Docker e Docker Compose
 - **Chave de API OpenAI** — obrigatória (`OPENAI_API_KEY`)
-- **Projeto Supabase** com o bucket `mka-documents` criado, e a chave **`service_role`** (não a anon) em mãos — necessária para upload por usuário. Sem ela, o backend retorna 403 (RLS bloqueia)
 - Chave de API Cohere — opcional (re-ranking desativado sem ela)
 - Clerk — opcional (HS256 dev fallback disponível sem configuração Clerk)
 
@@ -127,13 +125,9 @@ CLERK_JWKS_URL=
 CLERK_JWT_SECRET=dev-secret
 
 # --- PostgreSQL ---
-# Usado por backend e worker; DATABASE_URL é montado no docker-compose
+# Usado por backend e worker; DATABASE_URL é montado no docker-compose.
+# Os bytes dos PDFs também ficam no Postgres (tabela document_blobs).
 POSTGRES_PASSWORD=mka-dev-password
-
-# --- Supabase Storage (obrigatório para upload de usuário) ---
-SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
-SUPABASE_KEY=eyJhbGci...service_role...
-SUPABASE_BUCKET=mka-documents
 
 # --- Frontend (Clerk) ---
 NEXT_PUBLIC_ENABLE_CLERK=false
@@ -154,6 +148,8 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
+
+> Para o deploy completo em VPS (Ubuntu) — firewall UFW, DNS, nginx como proxy reverso e TLS via Let's Encrypt — veja **[VPS_DEPLOY.md](VPS_DEPLOY.md)**. No modo de produção apenas o frontend é publicado (em `127.0.0.1:3000`); os demais serviços ficam na rede interna do Compose.
 
 | Serviço | URL |
 |---|---|
@@ -189,7 +185,7 @@ Base URL: `http://localhost:8000/api/v1`
 | `POST` | `/documents` | Sim | Upload de PDF; retorna 202 e dispara ingestão Celery |
 | `GET` | `/documents` | Sim | Lista documentos do usuário autenticado |
 | `GET` | `/documents/{id}` | Sim | Status detalhado de um documento (polling de indexação) |
-| `DELETE` | `/documents/{id}` | Sim | Remove documento (Qdrant + Supabase + Postgres) |
+| `DELETE` | `/documents/{id}` | Sim | Remove documento (Qdrant + Postgres: bytes + metadados) |
 | `POST` | `/upload/image` | Sim | Análise de imagem via GPT-4o |
 | `POST` | `/upload/audio` | Sim | Transcrição via Whisper |
 
@@ -258,7 +254,7 @@ Retorna o estado atual de um documento (somente do próprio usuário). Estados p
 | Estado | Significado |
 |---|---|
 | `pending` | Enfileirado para o worker |
-| `processing` | Worker baixou o arquivo do Supabase |
+| `processing` | Worker leu os bytes do PDF do Postgres |
 | `chunking` | Texto extraído e dividido em chunks |
 | `embedding` | Chunks sendo embedados em lote |
 | `indexed` | Vetores inseridos no Qdrant — pronto para retrieval |
@@ -268,7 +264,7 @@ O frontend faz polling a cada 3s até `indexed` ou `error` (`frontend/hooks/use-
 
 ### DELETE /documents/{id}
 
-Remove os vetores correspondentes do Qdrant (filtrando por `document_id`), deleta o arquivo do Supabase e apaga a row em `documents`. Retorna **204 No Content**.
+Remove os vetores correspondentes do Qdrant (filtrando por `document_id`), apaga os bytes em `document_blobs` e a row em `documents`. Retorna **204 No Content**.
 
 ### POST /upload/image
 
@@ -296,9 +292,9 @@ A tabela `documents` (Postgres) é a fonte de verdade para o ciclo de vida de ca
 |---|---|---|
 | `id` | UUID (string) | PK (gerada pelo backend) |
 | `user_id` | string | Indexado; extraído do JWT Clerk |
-| `filename` | string | Nome sanitizado armazenado no Supabase |
+| `filename` | string | Nome sanitizado do arquivo |
 | `original_filename` | string | Nome original enviado pelo usuário |
-| `storage_path` | string | `{user_id}/{document_id}/{filename}` |
+| `storage_path` | string | `{user_id}/{document_id}/{filename}` — chave dos bytes em `document_blobs` |
 | `mime_type` | string | Sempre `application/pdf` |
 | `size` | integer | Bytes |
 | `indexing_status` | enum | `pending`, `processing`, `chunking`, `embedding`, `indexed`, `error` |
@@ -307,6 +303,8 @@ A tabela `documents` (Postgres) é a fonte de verdade para o ciclo de vida de ca
 | `embedding_model` | string · nullable | Ex.: `text-embedding-3-small` |
 | `qdrant_collection` | string | Coleção alvo (default `engineering_documents`) |
 | `created_at` / `updated_at` | timestamp (tz) | Mantidos automaticamente |
+
+Os **bytes do PDF** são persistidos no próprio Postgres, na tabela `document_blobs` (definida em `backend/app/db/models.py`): `storage_path` (PK), `document_id`, `content` (`BYTEA`), `mime_type`, `created_at`. Tabela separada de `documents` para manter as listagens de metadados leves — o binário só é lido na ingestão/download. O acesso é feito pelo `PostgresStorageProvider` (`backend/app/storage/postgres_provider.py`), que implementa o Protocol `StorageProvider`.
 
 O schema é criado em runtime via `Base.metadata.create_all` no lifespan do FastAPI (`backend/app/main.py:23`). Alembic está instalado e disponível, mas não há migrations versionadas no momento.
 
@@ -410,9 +408,6 @@ Todas as variáveis são lidas de `.env` (raiz) ou variáveis de ambiente. Valor
 | `QDRANT_VECTOR_SIZE` | `1536` | Dimensão dos vetores (alinhada ao embedding) |
 | `REDIS_URL` | `redis://localhost:6379/0` | URL do Redis (broker Celery) |
 | `DATABASE_URL` | `postgresql+asyncpg://mka:mka@localhost:5432/mka` | URL do Postgres (driver async) |
-| `SUPABASE_URL` | — | **Obrigatória** — URL do projeto Supabase |
-| `SUPABASE_KEY` | — | **Obrigatória** — chave `service_role` (não a anon) |
-| `SUPABASE_BUCKET` | `mka-documents` | Bucket alvo do storage |
 | `RETRIEVAL_TOP_K_CANDIDATES` | `20` | Candidatos retornados pelo Qdrant |
 | `RETRIEVAL_TOP_K_FINAL` | `5` | Chunks enviados ao LLM após re-ranking |
 | `MAX_UPLOAD_MB` | `100` | Tamanho máximo de PDF por upload |
@@ -435,7 +430,8 @@ Todas as variáveis são lidas de `.env` (raiz) ou variáveis de ambiente. Valor
 Qdrant e Redis devem estar rodando (podem ser iniciados isoladamente via Docker):
 
 ```bash
-docker compose up qdrant redis -d
+# o override de dev publica as portas (6333/6379) no host
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up qdrant redis -d
 ```
 
 ```bash
@@ -478,7 +474,7 @@ materials-knowledge-assistant/
 │   │   │   └── models.py            # ORM SQLAlchemy 2.0 (Document)
 │   │   ├── storage/
 │   │   │   ├── provider.py          # Protocol StorageProvider
-│   │   │   └── supabase_provider.py # implementação Supabase Storage
+│   │   │   └── postgres_provider.py # implementação Postgres (tabela document_blobs)
 │   │   ├── integrations/
 │   │   │   └── openai_client.py     # embed_texts, stream_answer, describe_image, transcribe_audio
 │   │   ├── rag/

@@ -34,9 +34,6 @@ class Settings(BaseSettings):
     qdrant_vector_size: int = 1536
     redis_url: str = "redis://localhost:6379/0"
     database_url: str = "postgresql+asyncpg://mka:mka@localhost:5432/mka"
-    supabase_url: str = ""
-    supabase_key: str = ""
-    supabase_bucket: str = "mka-documents"
     books_dir: str = "livros"
     max_upload_mb: int = 100
     max_image_upload_mb: int = 20

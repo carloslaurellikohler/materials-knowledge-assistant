@@ -1,3 +1,14 @@
+# Override de produção (VPS Ubuntu + nginx no host).
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Nenhum serviço publica porta em 0.0.0.0. Apenas o frontend é exposto em
+# 127.0.0.1:3000, para o nginx do host fazer o proxy reverso e o TLS.
+# Postgres, Qdrant, Redis, backend e worker ficam acessíveis somente pela rede
+# interna do Compose (comunicação por nome de serviço).
+#
+# IMPORTANTE: publicar portas em 0.0.0.0 e confiar só no UFW NÃO é seguro — o
+# Docker insere regras iptables (chain DOCKER) que contornam o UFW. Por isso o
+# bind em loopback aqui é a barreira efetiva; o UFW protege apenas 22/80/443.
 services:
   qdrant:
     restart: unless-stopped
@@ -10,9 +21,15 @@ services:
 
   backend:
     restart: unless-stopped
+    environment:
+      - APP_ENV=prod
 
   worker:
     restart: unless-stopped
+    environment:
+      - APP_ENV=prod
 
   frontend:
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"

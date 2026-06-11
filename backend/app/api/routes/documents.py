@@ -13,7 +13,7 @@ from app.api.schemas.documents import DocumentResponse, UploadResponse
 from app.core.config import settings
 from app.db.database import get_db
 from app.db.models import Document
-from app.storage.supabase_provider import get_storage
+from app.storage.postgres_provider import get_storage
 from app.workers.tasks import ingest_document_task
 
 router = APIRouter(tags=["documents"])
@@ -134,7 +134,7 @@ async def delete_document(
         ),
     )
 
-    # Delete file from Supabase Storage
+    # Delete file bytes from Postgres (document_blobs)
     storage = get_storage()
     await storage.delete(doc.storage_path)
 

@@ -23,7 +23,6 @@ dependencies = [
   "asyncpg>=0.29",
   "psycopg2-binary>=2.9",
   "alembic>=1.13",
-  "supabase>=2.0",
 ]
 
 [project.optional-dependencies]

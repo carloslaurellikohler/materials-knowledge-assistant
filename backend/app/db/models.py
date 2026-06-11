@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, Integer, String, Text
+from sqlalchemy import DateTime, Enum, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.database import Base
@@ -34,3 +34,20 @@ class Document(Base):
     qdrant_collection: Mapped[str] = mapped_column(String(256), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
+
+
+class DocumentBlob(Base):
+    """Bytes do PDF persistidos no próprio Postgres (substitui o Supabase Storage).
+
+    Tabela separada de ``documents`` para manter as listagens de metadados leves —
+    o conteúdo binário só é carregado na ingestão/download, nunca no GET /documents.
+    Chaveada por ``storage_path`` (mesma chave lógica usada pelo StorageProvider).
+    """
+
+    __tablename__ = "document_blobs"
+
+    storage_path: Mapped[str] = mapped_column(String(1024), primary_key=True)
+    document_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
