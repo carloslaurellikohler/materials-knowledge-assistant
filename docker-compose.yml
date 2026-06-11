@@ -70,7 +70,12 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # NEXT_PUBLIC_* precisam chegar no build (next build as inlina no bundle).
+        NEXT_PUBLIC_ENABLE_CLERK: ${NEXT_PUBLIC_ENABLE_CLERK:-false}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
     working_dir: /app
     restart: unless-stopped
     environment:
