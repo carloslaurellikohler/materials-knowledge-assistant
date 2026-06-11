@@ -32,3 +32,12 @@ export const GET = (req: NextRequest, { params }: { params: { path: string[] } }
 
 export const POST = (req: NextRequest, { params }: { params: { path: string[] } }) =>
   proxy(req, params.path);
+
+export const PUT = (req: NextRequest, { params }: { params: { path: string[] } }) =>
+  proxy(req, params.path);
+
+export const PATCH = (req: NextRequest, { params }: { params: { path: string[] } }) =>
+  proxy(req, params.path);
+
+export const DELETE = (req: NextRequest, { params }: { params: { path: string[] } }) =>
+  proxy(req, params.path);
