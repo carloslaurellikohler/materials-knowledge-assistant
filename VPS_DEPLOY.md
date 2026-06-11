@@ -1,8 +1,8 @@
 # Deploy do MKA em VPS (Hostinger / Ubuntu)
 
-Guia prático para subir o MKA do zero numa VPS Ubuntu limpa, com todos os serviços containerizados (Postgres, Qdrant, Redis, backend, worker, frontend) e um **nginx no host** fazendo proxy reverso + TLS para o domínio `mka.lk-tech-solution.com`.
+Guia prático para subir o MKA do zero numa VPS Ubuntu limpa, com todos os serviços containerizados (Postgres, Qdrant, Redis, backend, worker, frontend) e um **nginx no host** fazendo proxy reverso + TLS para o domínio `mka.lk-tech-solutions.com`.
 
-> Domínio de produção: `mka.lk-tech-solution.com`. Se for reaproveitar este guia para outro domínio, ajuste-o em todos os passos.
+> Domínio de produção: `mka.lk-tech-solutions.com`. Se for reaproveitar este guia para outro domínio, ajuste-o em todos os passos.
 
 ## Visão geral da topologia
 
@@ -81,9 +81,9 @@ No painel de DNS do seu domínio, crie um registro **A**:
 
 | Tipo | Nome | Valor |
 |---|---|---|
-| A | `mka` (→ `mka.lk-tech-solution.com`) | IP público da VPS |
+| A | `mka` (→ `mka.lk-tech-solutions.com`) | IP público da VPS |
 
-Aguarde a propagação. Confirme com `dig +short mka.lk-tech-solution.com` (deve retornar o IP da VPS) **antes** de emitir o certificado TLS (passo 8).
+Aguarde a propagação. Confirme com `dig +short mka.lk-tech-solutions.com` (deve retornar o IP da VPS) **antes** de emitir o certificado TLS (passo 8).
 
 ## 5. Clonar o repositório e configurar o `.env`
 
@@ -110,11 +110,11 @@ COHERE_API_KEY=
 POSTGRES_PASSWORD=<senha-forte-aleatoria>
 
 # Clerk (produção — instância production, chaves pk_live_/sk_live_)
-CLERK_JWKS_URL=https://clerk.lk-tech-solution.com/.well-known/jwks.json
+CLERK_JWKS_URL=https://clerk.lk-tech-solutions.com/.well-known/jwks.json
 CLERK_JWT_SECRET=irrelevante-quando-ha-jwks
 
 # CORS — domínio público do frontend
-CORS_ALLOWED_ORIGINS=https://mka.lk-tech-solution.com
+CORS_ALLOWED_ORIGINS=https://mka.lk-tech-solutions.com
 
 # Frontend (Clerk)
 NEXT_PUBLIC_ENABLE_CLERK=true
@@ -147,7 +147,7 @@ curl -s http://127.0.0.1:3000 | head    # frontend respondendo
 
 ```bash
 sudo apt install -y nginx
-sudo nano /etc/nginx/sites-available/mka.lk-tech-solution.com
+sudo nano /etc/nginx/sites-available/mka.lk-tech-solutions.com
 ```
 
 Conteúdo (atenção ao suporte a **SSE/streaming** do `/chat` e ao limite de upload de PDF):
@@ -155,7 +155,7 @@ Conteúdo (atenção ao suporte a **SSE/streaming** do `/chat` e ao limite de up
 ```nginx
 server {
     listen 80;
-    server_name mka.lk-tech-solution.com;
+    server_name mka.lk-tech-solutions.com;
 
     # Uploads de PDF (alinhe com MAX_UPLOAD_MB, default 100 MB)
     client_max_body_size 110M;
@@ -180,7 +180,7 @@ server {
 Ative e recarregue:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/mka.lk-tech-solution.com /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/mka.lk-tech-solutions.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -191,7 +191,7 @@ Com o DNS já apontando para a VPS (passo 4):
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d mka.lk-tech-solution.com
+sudo certbot --nginx -d mka.lk-tech-solutions.com
 ```
 
 O certbot ajusta o server block para HTTPS (443) e redireciona 80→443. A renovação automática é instalada via systemd timer; valide com:
@@ -201,7 +201,7 @@ sudo systemctl status certbot.timer
 sudo certbot renew --dry-run
 ```
 
-Acesse `https://mka.lk-tech-solution.com` no navegador. **Depois**, no painel do Clerk (instância production), adicione `https://mka.lk-tech-solution.com` às *Allowed origins*.
+Acesse `https://mka.lk-tech-solutions.com` no navegador. **Depois**, no painel do Clerk (instância production), adicione `https://mka.lk-tech-solutions.com` às *Allowed origins*.
 
 ## 9. (Opcional) Indexar o corpus administrativo
 
